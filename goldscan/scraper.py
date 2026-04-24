@@ -1,25 +1,23 @@
-"""Scrape gold futures (GC=F) prices and CFTC Commitment of Traders data."""
+"""Thin facade over the pluggable source layer + CFTC COT helper.
+
+For the actual price-data implementations see goldscan.sources.
+"""
 
 from __future__ import annotations
 
-import io
 from dataclasses import dataclass
 from datetime import datetime
 
 import pandas as pd
 import requests
-import yfinance as yf
 
-GOLD_FUTURES_TICKER = "GC=F"
-GOLD_SPOT_TICKER = "XAUUSD=X"
+from .sources import DataSource, LivePrice, get_source
 
-# CFTC disaggregated futures-only "managed money" report (legacy CSV).
-COT_REPORT_URL = (
-    "https://www.cftc.gov/dea/newcot/FinFutWk.txt"  # legacy short report
-)
-COT_DISAGG_URL = (
-    "https://www.cftc.gov/files/dea/history/fut_disagg_txt_2026.zip"
-)
+# Default tickers — kept here so the CLI and tests can reference them.
+GOLD_FUTURES_TICKER = "GC=F"     # Yahoo
+GOLD_SPOT_OANDA = "XAU_USD"      # OANDA
+
+COT_REPORT_URL = "https://www.cftc.gov/dea/newcot/FinFutWk.txt"
 
 
 @dataclass
@@ -30,6 +28,7 @@ class PriceSnapshot:
     day_high: float
     day_low: float
     asof: datetime
+    is_realtime: bool = False
 
     @property
     def change_pct(self) -> float:
@@ -37,44 +36,53 @@ class PriceSnapshot:
 
 
 def fetch_ohlc(
-    ticker: str = GOLD_FUTURES_TICKER,
+    source: str | DataSource = "yahoo",
     period: str = "6mo",
     interval: str = "1d",
-) -> pd.DataFrame:
-    """Fetch OHLCV from Yahoo Finance. Default: 6 months of daily GC=F bars."""
-    df = yf.download(
-        ticker,
-        period=period,
-        interval=interval,
-        progress=False,
-        auto_adjust=False,
-    )
-    if df.empty:
-        raise RuntimeError(f"No data returned for {ticker} ({period}/{interval})")
-    if isinstance(df.columns, pd.MultiIndex):
-        df.columns = df.columns.get_level_values(0)
-    df.index = pd.to_datetime(df.index)
-    return df[["Open", "High", "Low", "Close", "Volume"]].dropna()
+    **source_kwargs,
+) -> tuple[pd.DataFrame, DataSource]:
+    """Fetch OHLC bars from the requested source. Returns (df, source)."""
+    src = source if not isinstance(source, str) else get_source(source, **source_kwargs)
+    df = src.fetch_ohlc(period=period, interval=interval)
+    return df, src
 
 
-def latest_snapshot(df: pd.DataFrame, ticker: str = GOLD_FUTURES_TICKER) -> PriceSnapshot:
-    last = df.iloc[-1]
-    prev = df.iloc[-2] if len(df) >= 2 else last
+def latest_snapshot(df: pd.DataFrame, src: DataSource) -> PriceSnapshot:
+    """Combine the last bar with a real-time tick when the source provides one."""
+    last_bar = df.iloc[-1]
+    prev_bar = df.iloc[-2] if len(df) >= 2 else last_bar
+    try:
+        tick: LivePrice | None = src.latest_price()
+    except Exception:
+        tick = None
+
+    if tick is not None and tick.is_realtime:
+        return PriceSnapshot(
+            ticker=tick.instrument,
+            last=tick.mid,
+            prev_close=float(prev_bar["Close"]),
+            day_high=max(float(last_bar["High"]), tick.mid),
+            day_low=min(float(last_bar["Low"]), tick.mid),
+            asof=tick.asof,
+            is_realtime=True,
+        )
+
     return PriceSnapshot(
-        ticker=ticker,
-        last=float(last["Close"]),
-        prev_close=float(prev["Close"]),
-        day_high=float(last["High"]),
-        day_low=float(last["Low"]),
+        ticker=getattr(src, "instrument", "?"),
+        last=float(last_bar["Close"]),
+        prev_close=float(prev_bar["Close"]),
+        day_high=float(last_bar["High"]),
+        day_low=float(last_bar["Low"]),
         asof=df.index[-1].to_pydatetime(),
+        is_realtime=False,
     )
 
 
 def fetch_cot_managed_money(timeout: float = 10.0) -> dict | None:
-    """Fetch latest managed-money net positioning for gold from the CFTC.
+    """Fetch the latest weekly CFTC managed-money excerpt for gold.
 
-    Returns a small dict with longs/shorts/net or None if the request fails.
-    The CFTC publishes COT every Friday at 15:30 ET.
+    Returns a dict with a raw text excerpt or None on failure. The CFTC
+    publishes COT every Friday at 15:30 ET.
     """
     try:
         r = requests.get(COT_REPORT_URL, timeout=timeout)
@@ -82,12 +90,7 @@ def fetch_cot_managed_money(timeout: float = 10.0) -> dict | None:
     except requests.RequestException:
         return None
 
-    text = r.text
-    # The legacy "FinFutWk" file is line-oriented; gold contracts are listed
-    # under the "GOLD - COMMODITY EXCHANGE INC." header. We do a permissive
-    # scan rather than a strict parse — the format has changed historically.
-    blocks = text.split("GOLD")
+    blocks = r.text.split("GOLD")
     if len(blocks) < 2:
         return None
-    block = blocks[1][:4000]
-    return {"raw_excerpt": block.strip()}
+    return {"raw_excerpt": blocks[1][:4000].strip()}

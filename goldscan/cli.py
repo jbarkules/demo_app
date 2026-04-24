@@ -85,9 +85,15 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--account", type=float, default=25_000, help="Account size in USD")
     parser.add_argument("--risk", type=float, default=1.0, help="Risk per trade %% (default 1.0)")
-    parser.add_argument("--period", default="6mo", help="yfinance period (e.g. 3mo, 6mo, 1y, 2y)")
-    parser.add_argument("--interval", default="1d", help="yfinance interval (1d, 1h, ...)")
-    parser.add_argument("--ticker", default=scraper.GOLD_FUTURES_TICKER)
+    parser.add_argument(
+        "--source",
+        choices=["yahoo", "oanda"],
+        default="yahoo",
+        help="Market-data source (yahoo=GC=F 15-min delayed, oanda=XAU_USD real-time)",
+    )
+    parser.add_argument("--period", default="6mo", help="Lookback period (1mo, 3mo, 6mo, 1y, 2y, 5y)")
+    parser.add_argument("--interval", default="1d", help="Bar interval (1d, 4h, 1h, 15m, 5m, 1m)")
+    parser.add_argument("--ticker", default=None, help="Override the source's default instrument")
     parser.add_argument("--win-rate", type=float, default=0.45)
     parser.add_argument("--rr", type=float, default=1.8, help="Reward:risk ratio")
     parser.add_argument("--trades-per-month", type=int, default=12)
@@ -98,20 +104,35 @@ def main(argv: list[str] | None = None) -> int:
 
     console = Console()
 
+    source_kwargs = {}
+    if args.ticker:
+        source_kwargs["instrument"] = args.ticker
+
     try:
-        df = scraper.fetch_ohlc(args.ticker, period=args.period, interval=args.interval)
+        df, src = scraper.fetch_ohlc(
+            source=args.source,
+            period=args.period,
+            interval=args.interval,
+            **source_kwargs,
+        )
     except Exception as e:
-        console.print(f"[red]Failed to fetch price data:[/red] {e}")
+        console.print(f"[red]Failed to fetch price data from {args.source}:[/red] {e}")
+        if args.source == "oanda":
+            console.print(
+                "[dim]Set OANDA_API_TOKEN (and optionally OANDA_ACCOUNT_ID for "
+                "real-time bid/ask). Free demo tokens at oanda.com.[/dim]"
+            )
         return 1
 
-    snap = scraper.latest_snapshot(df, args.ticker)
+    snap = scraper.latest_snapshot(df, src)
+    live_tag = "[green]LIVE[/green]" if snap.is_realtime else "[yellow]delayed[/yellow]"
     console.print(
         Panel(
-            f"[bold]{snap.ticker}[/bold]    ${snap.last:,.2f}    "
-            f"({snap.change_pct:+.2f}% vs prev close)\n"
+            f"[bold]{snap.ticker}[/bold] via {src.name}  {live_tag}    "
+            f"${snap.last:,.2f}    ({snap.change_pct:+.2f}% vs prev close)\n"
             f"Day range: ${snap.day_low:,.2f} – ${snap.day_high:,.2f}    "
-            f"As of: {snap.asof:%Y-%m-%d %H:%M}",
-            title="Gold Futures Snapshot",
+            f"As of: {snap.asof:%Y-%m-%d %H:%M %Z}",
+            title="Gold Snapshot",
             border_style="yellow",
         )
     )
