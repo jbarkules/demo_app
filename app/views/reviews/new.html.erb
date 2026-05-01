@@ -1,0 +1,53 @@
+<% content_for :title, "Review #{@reviewee.display_name}" %>
+
+<h1 class="text-2xl font-bold mb-1">Review <%= @reviewee.display_name %></h1>
+<p class="text-slate-600 mb-6">Be honest. Be specific. This helps every subcontractor who comes after you.</p>
+
+<%= form_with model: [ @reviewee, @review ], url: user_reviews_path(@reviewee), class: "space-y-5 bg-white rounded-lg border border-slate-200 p-6" do |f| %>
+  <% if @review.errors.any? %>
+    <div class="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-red-800">
+      <ul class="list-disc list-inside text-sm">
+        <% @review.errors.full_messages.each do |msg| %><li><%= msg %></li><% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div>
+    <%= f.label :rating, "Overall rating (1–5)", class: "block text-sm font-medium" %>
+    <%= f.select :rating, (1..5).to_a, { include_blank: "Select…" },
+          class: "mt-1 rounded-md border border-slate-300 px-3 py-2" %>
+  </div>
+
+  <div class="grid grid-cols-3 gap-4">
+    <% [[:payment_timeliness, "Paid on time?"], [:scope_clarity, "Clear scope?"], [:communication, "Good comms?"]].each do |attr, label| %>
+      <div>
+        <%= f.label attr, label, class: "block text-sm font-medium" %>
+        <%= f.select attr, (1..5).to_a, { include_blank: "—" },
+              class: "mt-1 w-full rounded-md border border-slate-300 px-3 py-2" %>
+      </div>
+    <% end %>
+  </div>
+
+  <div>
+    <%= f.label :would_work_again, class: "block text-sm font-medium" %>
+    <%= f.select :would_work_again, [["Yes", true], ["No", false]], { include_blank: "—" },
+          class: "mt-1 rounded-md border border-slate-300 px-3 py-2" %>
+  </div>
+
+  <div>
+    <%= f.label :project_description, "Project (optional)", class: "block text-sm font-medium" %>
+    <%= f.text_field :project_description, placeholder: "e.g. Kitchen remodel, 6-week site build",
+          class: "mt-1 w-full rounded-md border border-slate-300 px-3 py-2" %>
+  </div>
+
+  <div>
+    <%= f.label :body, "Your review", class: "block text-sm font-medium" %>
+    <%= f.text_area :body, rows: 6, class: "mt-1 w-full rounded-md border border-slate-300 px-3 py-2" %>
+    <p class="text-xs text-slate-500 mt-1">Minimum 20 characters. Stick to facts about the working relationship.</p>
+  </div>
+
+  <div class="flex gap-3">
+    <%= f.submit "Post review", class: "bg-emerald-600 text-white px-4 py-2 rounded-md hover:bg-emerald-700" %>
+    <%= link_to "Cancel", user_path(@reviewee), class: "text-slate-600 px-4 py-2" %>
+  </div>
+<% end %>

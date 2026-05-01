@@ -1,0 +1,23 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  reviewer: one
+  reviewee: one
+  rating: 1
+  payment_timeliness: 1
+  scope_clarity: 1
+  communication: 1
+  would_work_again: false
+  body: MyText
+  project_description: MyString
+
+two:
+  reviewer: two
+  reviewee: two
+  rating: 1
+  payment_timeliness: 1
+  scope_clarity: 1
+  communication: 1
+  would_work_again: false
+  body: MyText
+  project_description: MyString

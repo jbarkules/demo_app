@@ -1,0 +1,19 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  subcontractor: one
+  counterparty: one
+  title: MyString
+  description: MyText
+  started_on: 2026-05-01
+  ended_on: 2026-05-01
+  status: 1
+
+two:
+  subcontractor: two
+  counterparty: two
+  title: MyString
+  description: MyText
+  started_on: 2026-05-01
+  ended_on: 2026-05-01
+  status: 1
