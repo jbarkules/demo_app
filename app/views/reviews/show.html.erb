@@ -1,0 +1,8 @@
+<% content_for :title, "Review of #{@review.reviewee.display_name}" %>
+
+<p class="text-sm text-slate-500 mb-3">
+  Review of <%= link_to @review.reviewee.display_name, user_path(@review.reviewee), class: "text-emerald-700 underline" %>
+</p>
+<ul class="space-y-4">
+  <%= render @review %>
+</ul>

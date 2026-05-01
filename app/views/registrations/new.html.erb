@@ -1,0 +1,60 @@
+<% content_for :title, "Sign up — ReverseList" %>
+
+<h1 class="text-2xl font-bold mb-1">Create an account</h1>
+<p class="text-slate-600 mb-6">Subcontractors leave reviews. Developers and clients receive them.</p>
+
+<%= form_with model: @user, url: registrations_path, class: "space-y-4 bg-white rounded-lg border border-slate-200 p-6 max-w-lg" do |f| %>
+  <% if @user.errors.any? %>
+    <div class="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-red-800">
+      <ul class="list-disc list-inside text-sm">
+        <% @user.errors.full_messages.each do |msg| %><li><%= msg %></li><% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div>
+    <%= f.label :role, "I am a…", class: "block text-sm font-medium" %>
+    <%= f.select :role, User.roles.keys.map { |r| [r.capitalize, r] }, {},
+          class: "mt-1 w-full rounded-md border border-slate-300 px-3 py-2" %>
+  </div>
+
+  <div>
+    <%= f.label :display_name, "Display name", class: "block text-sm font-medium" %>
+    <%= f.text_field :display_name, required: true,
+          class: "mt-1 w-full rounded-md border border-slate-300 px-3 py-2" %>
+  </div>
+
+  <div class="grid grid-cols-2 gap-4">
+    <div>
+      <%= f.label :company_name, "Company (optional)", class: "block text-sm font-medium" %>
+      <%= f.text_field :company_name, class: "mt-1 w-full rounded-md border border-slate-300 px-3 py-2" %>
+    </div>
+    <div>
+      <%= f.label :location, "Location", class: "block text-sm font-medium" %>
+      <%= f.text_field :location, placeholder: "City, State", class: "mt-1 w-full rounded-md border border-slate-300 px-3 py-2" %>
+    </div>
+  </div>
+
+  <div>
+    <%= f.label :trade, "Trade / specialty (optional)", class: "block text-sm font-medium" %>
+    <%= f.text_field :trade, placeholder: "Electrical, framing, drywall…", class: "mt-1 w-full rounded-md border border-slate-300 px-3 py-2" %>
+  </div>
+
+  <div>
+    <%= f.label :email_address, "Email", class: "block text-sm font-medium" %>
+    <%= f.email_field :email_address, required: true, class: "mt-1 w-full rounded-md border border-slate-300 px-3 py-2" %>
+  </div>
+
+  <div class="grid grid-cols-2 gap-4">
+    <div>
+      <%= f.label :password, class: "block text-sm font-medium" %>
+      <%= f.password_field :password, required: true, class: "mt-1 w-full rounded-md border border-slate-300 px-3 py-2" %>
+    </div>
+    <div>
+      <%= f.label :password_confirmation, "Confirm", class: "block text-sm font-medium" %>
+      <%= f.password_field :password_confirmation, required: true, class: "mt-1 w-full rounded-md border border-slate-300 px-3 py-2" %>
+    </div>
+  </div>
+
+  <%= f.submit "Create account", class: "bg-emerald-600 text-white px-4 py-2 rounded-md hover:bg-emerald-700" %>
+<% end %>

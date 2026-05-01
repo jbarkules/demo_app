@@ -1,0 +1,36 @@
+<li class="bg-white rounded-lg border border-slate-200 p-5">
+  <div class="flex items-baseline justify-between">
+    <div>
+      <p class="font-medium text-slate-900">
+        <%= "★" * review.rating %><span class="text-slate-300"><%= "★" * (5 - review.rating) %></span>
+        <span class="ml-2 text-sm text-slate-500">by <%= review.reviewer.display_name %></span>
+      </p>
+      <p class="text-xs text-slate-500 mt-0.5">
+        <%= review.created_at.to_fs(:long) rescue review.created_at.strftime("%B %-d, %Y") %>
+        <% if review.project_description.present? %> · <%= review.project_description %><% end %>
+      </p>
+    </div>
+    <% if review.would_work_again == true %>
+      <span class="text-xs bg-emerald-100 text-emerald-800 px-2 py-1 rounded">Would work again</span>
+    <% elsif review.would_work_again == false %>
+      <span class="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">Would not work again</span>
+    <% end %>
+  </div>
+
+  <p class="mt-3 text-slate-700 whitespace-pre-line"><%= review.body %></p>
+
+  <dl class="mt-4 grid grid-cols-3 gap-2 text-xs text-slate-600">
+    <% [[:payment_timeliness, "Payment"], [:scope_clarity, "Scope clarity"], [:communication, "Communication"]].each do |attr, label| %>
+      <% val = review.send(attr) %>
+      <% if val %>
+        <div><dt class="text-slate-500"><%= label %></dt><dd class="font-medium"><%= val %>/5</dd></div>
+      <% end %>
+    <% end %>
+  </dl>
+
+  <% if Current.user&.id == review.reviewer_id %>
+    <%= button_to "Delete", review_path(review), method: :delete,
+          data: { turbo_confirm: "Delete this review?" },
+          class: "mt-3 text-xs text-red-600 hover:underline" %>
+  <% end %>
+</li>

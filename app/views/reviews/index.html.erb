@@ -1,0 +1,25 @@
+<% content_for :title, "Recent reviews — ReverseList" %>
+
+<h1 class="text-3xl font-bold tracking-tight mb-6">Recent reviews</h1>
+
+<% if @reviews.empty? %>
+  <p class="text-slate-500">No reviews yet. Be the first.</p>
+<% else %>
+  <ul class="space-y-4">
+    <% @reviews.each do |review| %>
+      <li class="bg-white rounded-lg border border-slate-200 p-5">
+        <p class="text-sm text-slate-500">
+          <%= link_to review.reviewer.display_name, user_path(review.reviewer), class: "font-medium text-slate-900" %>
+          reviewed
+          <%= link_to review.reviewee.display_name, user_path(review.reviewee), class: "font-medium text-slate-900" %>
+          <span class="text-slate-400">· <%= time_ago_in_words(review.created_at) %> ago</span>
+        </p>
+        <p class="mt-1 text-amber-600">
+          <%= "★" * review.rating %><span class="text-slate-300"><%= "★" * (5 - review.rating) %></span>
+        </p>
+        <p class="mt-2 text-slate-700 line-clamp-3"><%= review.body %></p>
+        <%= link_to "Read more", review_path(review), class: "text-sm text-emerald-700 hover:underline mt-2 inline-block" %>
+      </li>
+    <% end %>
+  </ul>
+<% end %>

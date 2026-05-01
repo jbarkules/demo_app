@@ -1,0 +1,40 @@
+<% content_for :title, "Browse #{@role.pluralize} — ReverseList" %>
+
+<div class="mb-8">
+  <h1 class="text-3xl font-bold tracking-tight"><%= @role.capitalize.pluralize %></h1>
+  <p class="text-slate-600 mt-1">Reviews left by the subcontractors who actually worked with them.</p>
+</div>
+
+<%= form_with url: users_path, method: :get, class: "mb-6 flex gap-2" do |f| %>
+  <%= f.hidden_field :role, value: @role %>
+  <%= f.text_field :q, value: params[:q], placeholder: "Search by name, company, or location",
+        class: "flex-1 rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500" %>
+  <%= f.submit "Search", class: "bg-slate-900 text-white px-4 py-2 rounded-md hover:bg-slate-700" %>
+<% end %>
+
+<% if @users.empty? %>
+  <p class="text-slate-500">No <%= @role.pluralize %> found.</p>
+<% else %>
+  <ul class="grid gap-4 sm:grid-cols-2">
+    <% @users.each do |user| %>
+      <li class="bg-white rounded-lg border border-slate-200 p-5 hover:shadow-sm transition">
+        <%= link_to user_path(user), class: "block" do %>
+          <div class="flex items-baseline justify-between">
+            <h2 class="font-semibold text-lg text-slate-900"><%= user.display_name %></h2>
+            <% if user.reviews_count > 0 %>
+              <span class="text-sm text-amber-600 font-medium">
+                ★ <%= user.average_rating %> · <%= pluralize(user.reviews_count, "review") %>
+              </span>
+            <% else %>
+              <span class="text-sm text-slate-400">No reviews yet</span>
+            <% end %>
+          </div>
+          <p class="text-slate-600 text-sm mt-1">
+            <%= user.company_name.presence || user.role.capitalize %>
+            <% if user.location.present? %> · <%= user.location %><% end %>
+          </p>
+        <% end %>
+      </li>
+    <% end %>
+  </ul>
+<% end %>
