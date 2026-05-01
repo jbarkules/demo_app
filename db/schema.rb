@@ -10,7 +10,22 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_01_193113) do
+ActiveRecord::Schema[8.0].define(version: 2026_05_01_194456) do
+  create_table "engagements", force: :cascade do |t|
+    t.integer "subcontractor_id", null: false
+    t.integer "counterparty_id", null: false
+    t.string "title", null: false
+    t.text "description"
+    t.date "started_on"
+    t.date "ended_on"
+    t.integer "status", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["counterparty_id"], name: "index_engagements_on_counterparty_id"
+    t.index ["subcontractor_id", "counterparty_id"], name: "index_engagements_on_subcontractor_id_and_counterparty_id"
+    t.index ["subcontractor_id"], name: "index_engagements_on_subcontractor_id"
+  end
+
   create_table "reviews", force: :cascade do |t|
     t.integer "reviewer_id", null: false
     t.integer "reviewee_id", null: false
@@ -23,6 +38,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_01_193113) do
     t.string "project_description"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "engagement_id"
+    t.index ["engagement_id"], name: "index_reviews_on_engagement_id"
     t.index ["reviewee_id"], name: "index_reviews_on_reviewee_id"
     t.index ["reviewer_id", "reviewee_id"], name: "index_reviews_on_reviewer_id_and_reviewee_id"
     t.index ["reviewer_id"], name: "index_reviews_on_reviewer_id"
@@ -51,6 +68,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_01_193113) do
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
   end
 
+  add_foreign_key "engagements", "users", column: "counterparty_id"
+  add_foreign_key "engagements", "users", column: "subcontractor_id"
+  add_foreign_key "reviews", "engagements"
   add_foreign_key "reviews", "users", column: "reviewee_id"
   add_foreign_key "reviews", "users", column: "reviewer_id"
   add_foreign_key "sessions", "users"
